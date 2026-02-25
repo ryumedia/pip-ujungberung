@@ -2,7 +2,16 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Cek Env Vars untuk mencegah error 500 "MIDDLEWARE_INVOCATION_FAILED"
+  // 1. Cek Environment Variables dengan aman
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ CRITICAL: Supabase Environment Variables are missing in Middleware!')
+    // Return next() agar aplikasi tidak crash 500, meskipun auth tidak jalan
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -11,8 +20,8 @@ export async function middleware(request: NextRequest) {
 
   try {
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl,
+      supabaseKey,
       {
         cookies: {
           getAll() {
@@ -31,23 +40,30 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Menyegarkan sesi jika sudah kedaluwarsa - ini adalah titik rawan error
-    const { data, error } = await supabase.auth.getUser()
-    const user = data?.user
+    // 2. Cek User Session
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+       // Log error tapi jangan crash
+       console.error('Supabase Auth Error:', error.message)
+    }
 
-    // 1. Jika user sudah login dan ada di halaman root (login), redirect ke dashboard
-    if (user && request.nextUrl.pathname === '/') {
+    const path = request.nextUrl.pathname
+
+    // 3. Logika Redirect
+    // Jika user login & akses root -> redirect ke dashboard
+    if (user && path === '/') {
       return NextResponse.redirect(new URL('/pengajuan', request.url))
     }
 
-    // 2. Jika user belum login dan mencoba akses halaman admin, redirect ke login
-    if (!user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/pengajuan'))) {
+    // Jika user belum login & mencoba akses halaman protected -> redirect ke login
+    if (!user && (path.startsWith('/admin') || path.startsWith('/pengajuan'))) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   } catch (e) {
-    // Jika terjadi error APAPUN selama interaksi Supabase, log error tersebut
-    // dan kembalikan response awal. Ini akan MENCEGAH crash 500.
-    console.error("Error in Supabase middleware:", e);
+    // Tangkap error tak terduga agar tidak 500
+    console.error('Middleware Unexpected Error:', e)
+    return NextResponse.next()
   }
 
   return response
@@ -60,7 +76,8 @@ export const config = {
      * - _next/static (file statis)
      * - _next/image (file optimasi gambar)
      * - favicon.ico (file favicon)
+     * - file gambar umum (svg, png, jpg, dll)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
