@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -19,44 +19,19 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        get: (name: string) => request.cookies.get(name)?.value,
-        set(name: string, value: string, options: CookieOptions) {
-          // Jika cookie diatur, perbarui pada request dan response
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          // Buat ulang response agar perubahan cookie terbawa ke Server Components (Downstream)
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+        getAll() {
+          return request.cookies.getAll()
         },
-        remove(name: string, options: CookieOptions) {
-          // Jika cookie dihapus, hapus dari request dan response
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          // Buat ulang response
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
