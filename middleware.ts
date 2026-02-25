@@ -41,7 +41,8 @@ export async function middleware(request: NextRequest) {
     )
 
     // 2. Cek User Session
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { data, error } = await supabase.auth.getUser()
+    const user = data?.user
     
     if (error) {
        // Log error tapi jangan crash
