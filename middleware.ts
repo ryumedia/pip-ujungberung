@@ -2,6 +2,12 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Cek Env Vars untuk mencegah error 500 "MIDDLEWARE_INVOCATION_FAILED"
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('Missing Supabase Environment Variables in Middleware')
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -9,8 +15,8 @@ export async function middleware(request: NextRequest) {
   })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         get: (name: string) => request.cookies.get(name)?.value,
@@ -20,6 +26,12 @@ export async function middleware(request: NextRequest) {
             name,
             value,
             ...options,
+          })
+          // Buat ulang response agar perubahan cookie terbawa ke Server Components (Downstream)
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
           })
           response.cookies.set({
             name,
@@ -33,6 +45,12 @@ export async function middleware(request: NextRequest) {
             name,
             value: '',
             ...options,
+          })
+          // Buat ulang response
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
           })
           response.cookies.set({
             name,
