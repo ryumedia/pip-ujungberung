@@ -1,0 +1,74 @@
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name: string) => request.cookies.get(name)?.value,
+        set(name: string, value: string, options: CookieOptions) {
+          // Jika cookie diatur, perbarui pada request dan response
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          // Jika cookie dihapus, hapus dari request dan response
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
+
+  // Menyegarkan sesi jika sudah kedaluwarsa - diperlukan untuk Komponen Server
+  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // 1. Jika user sudah login dan ada di halaman root (login), redirect ke dashboard
+  if (user && request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/pengajuan', request.url))
+  }
+
+  // 2. Jika user belum login dan mencoba akses halaman admin, redirect ke login
+  if (!user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/pengajuan'))) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Cocokkan semua path permintaan kecuali yang dimulai dengan:
+     * - _next/static (file statis)
+     * - _next/image (file optimasi gambar)
+     * - favicon.ico (file favicon)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
+}
