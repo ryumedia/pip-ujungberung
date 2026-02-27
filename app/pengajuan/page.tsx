@@ -44,9 +44,6 @@ export default function PengajuanPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [riwayatPengajuan, setRiwayatPengajuan] = useState<RiwayatPengajuan[]>([]);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userKelurahan, setUserKelurahan] = useState<string | null>(null);
 
   // State for Edit
   const [isEditing, setIsEditing] = useState(false);
@@ -77,19 +74,9 @@ export default function PengajuanPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuthAndLoadData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/');
-        return;
-      }
-      // User is authenticated, proceed to fetch data
-      fetchStudents();
-      fetchKelurahan();
-      fetchUserRole();
-    };
-    checkAuthAndLoadData();
-  }, [router]);
+    fetchStudents();
+    fetchKelurahan();
+  }, []);
 
   const fetchStudents = async () => {
     setIsLoadingData(true);
@@ -137,22 +124,7 @@ export default function PengajuanPage() {
     if (data) setKelurahanList(data);
   };
 
-  const fetchUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, nama, kelurahan:kelurahan_id (name)')
-        .eq('id', user.id)
-        .single();
-      if (profile) {
-        setUserRole(profile.role);
-        setUserName(profile.nama);
-        // @ts-ignore
-        setUserKelurahan(profile.kelurahan?.name);
-      }
-    }
-  };
+
 
   const fetchRiwayatPengajuan = async (student: Student) => {
     const { data, error } = await supabase
@@ -360,11 +332,7 @@ export default function PengajuanPage() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
-  };
+
 
   return (
     <div className="min-h-screen bg-zinc-50 p-8 dark:bg-zinc-900">
@@ -374,24 +342,6 @@ export default function PengajuanPage() {
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
               PIP - Ujungberung
             </h1>
-            {userName && (
-              <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-                {userName} - Koordinator Kelurahan {userKelurahan || '...'}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {['super admin', 'admin kecamatan'].includes(userRole || '') && (
-              <Link href="/admin/dashboard" className="rounded-full p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800" title="Panel Admin">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-zinc-600 dark:text-zinc-400"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-              </Link>
-            )}
-            <button
-              onClick={handleLogout}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
-              Log Out
-            </button>
           </div>
         </div>
 
