@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 type Student = {
@@ -54,6 +53,10 @@ export default function HomePage() {
   const [isAjukanModalOpen, setIsAjukanModalOpen] = useState(false);
   const [tahunPengajuan, setTahunPengajuan] = useState(new Date().getFullYear().toString());
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State for Login Admin
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
 
   // State for Tambah Data Tab
   const [isAddingNew, setIsAddingNew] = useState(false);
@@ -332,6 +335,15 @@ export default function HomePage() {
     }
   };
 
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword === '135246') {
+      router.push('/admin/dashboard');
+    } else {
+      alert('Password salah!');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 p-8 dark:bg-zinc-900">
       <div className="mx-auto max-w-4xl">
@@ -341,9 +353,12 @@ export default function HomePage() {
               PIP - Ujungberung
             </h1>
           </div>
-          <Link href="/admin/dashboard" className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700">
+          <button 
+            onClick={() => setIsLoginModalOpen(true)}
+            className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+          >
             Login Admin
-          </Link>
+          </button>
         </div>
 
         {/* Tab Navigation */}
@@ -637,6 +652,35 @@ export default function HomePage() {
                 <button type="button" onClick={() => setIsAjukanModalOpen(false)} className="rounded-md bg-zinc-200 px-4 py-2 text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200">Batal</button>
                 <button type="submit" disabled={isSubmitting} className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50">{isSubmitting ? 'Mengirim...' : 'Kirim Pengajuan'}</button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Login Admin */}
+      {isLoginModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-800">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Login Admin</h3>
+              <button onClick={() => setIsLoginModalOpen(false)} className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400">
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Masukkan Password</label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"
+                  autoFocus
+                />
+              </div>
+              <button type="submit" className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+                Masuk
+              </button>
             </form>
           </div>
         </div>
