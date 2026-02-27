@@ -16,9 +16,16 @@ type PengajuanWithKelurahan = {
   rw: string;
   no_wa: string;
   status_pengajuan: string | null;
+  deskripsi: string | null;
   keterangan: string | null;
+  kelurahan_id: number;
   kelurahan: { name: string } | null;
 };
+
+type Kelurahan = {
+  id: number;
+  name: string;
+}
 
 type Student = {
   id: number;
@@ -31,6 +38,7 @@ type Student = {
   rw: string;
   no_wa: string;
   kelurahan_id: number;
+  keterangan: string | null;
 };
 
 export default function AdminPengajuanPage() {
@@ -43,11 +51,24 @@ export default function AdminPengajuanPage() {
   const [tahun, setTahun] = useState(new Date().getFullYear().toString());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Filter states
+  const [filterTahun, setFilterTahun] = useState('');
+  const [filterKelurahan, setFilterKelurahan] = useState('');
+  const [filterSekolah, setFilterSekolah] = useState('');
+  const [filterAdaKeterangan, setFilterAdaKeterangan] = useState(false);
+  const [kelurahanList, setKelurahanList] = useState<Kelurahan[]>([]);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const supabase = createClient();
 
   useEffect(() => {
     fetchData();
     fetchStudents();
+    fetchKelurahanList();
   }, []);
 
   const fetchData = async () => {
@@ -78,8 +99,20 @@ export default function AdminPengajuanPage() {
     }
   };
 
+  const fetchKelurahanList = async () => {
+    const { data, error } = await supabase
+      .from('kelurahan')
+      .select('id, name')
+      .order('name');
+    if (error) {
+      console.error('Error fetching kelurahan list:', error);
+    } else {
+      setKelurahanList(data || []);
+    }
+  };
+
   const fetchStudents = async () => {
-    let allStudents: Student[] = [];
+    let allStudents: any[] = [];
     let from = 0;
     const step = 1000;
     let hasMore = true;
@@ -132,23 +165,42 @@ export default function AdminPengajuanPage() {
     }
   };
 
-  const updateKeteranganLocal = (id: number, val: string) => {
+  const updateDeskripsiLocal = (id: number, val: string) => {
     setPengajuanList(prev => prev.map(item =>
-      item.id === id ? { ...item, keterangan: val } : item
+      item.id === id ? { ...item, deskripsi: val } : item
     ));
   };
 
-  const saveKeterangan = async (id: number, val: string) => {
+  const saveDeskripsi = async (id: number, val: string) => {
     try {
       const { error } = await supabase
         .from('pengajuan')
-        .update({ keterangan: val })
+        .update({ deskripsi: val })
         .eq('id', id);
 
       if (error) throw error;
     } catch (error: any) {
-      console.error('Error saving keterangan:', error);
-      alert('Gagal menyimpan keterangan: ' + error.message);
+      console.error('Error saving deskripsi:', error);
+      alert('Gagal menyimpan deskripsi: ' + error.message);
+      fetchData(); // Re-fetch to revert optimistic update
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus data pengajuan ini? Tindakan ini tidak dapat dibatalkan.')) return;
+
+    try {
+      const { error } = await supabase
+        .from('pengajuan')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      alert('Data pengajuan berhasil dihapus.');
+      fetchData(); // Refresh the table
+    } catch (error: any) {
+      alert('Gagal menghapus data pengajuan: ' + error.message);
     }
   };
 
@@ -186,7 +238,8 @@ export default function AdminPengajuanPage() {
         kelurahan_id: selectedStudent.kelurahan_id,
         no_wa: selectedStudent.no_wa,
         status_pengajuan: 'Menunggu',
-        keterangan: ''
+        deskripsi: '',
+        keterangan: selectedStudent.keterangan || null
       });
 
       if (error) throw error;
@@ -203,6 +256,32 @@ export default function AdminPengajuanPage() {
     }
   };
 
+  // Filtering and Pagination Logic
+  const filteredPengajuan = pengajuanList.filter(item => {
+    return (
+      (filterTahun ? item.tahun.includes(filterTahun) : true) &&
+      (filterKelurahan ? item.kelurahan_id?.toString() === filterKelurahan : true) &&
+      (filterSekolah ? item.nama_sekolah.toLowerCase().includes(filterSekolah.toLowerCase()) : true) &&
+      (filterAdaKeterangan ? !!item.keterangan : true)
+    );
+  });
+
+  const totalPages = Math.ceil(filteredPengajuan.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = filteredPengajuan.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterTahun, filterKelurahan, filterSekolah, filterAdaKeterangan]);
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -216,6 +295,48 @@ export default function AdminPengajuanPage() {
         >
           + Tambah Pengajuan
         </button>
+      </div>
+
+      {/* Filter Section */}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <input
+          type="text"
+          placeholder="Filter Tahun..."
+          value={filterTahun}
+          onChange={(e) => setFilterTahun(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
+        <select
+          value={filterKelurahan}
+          onChange={(e) => setFilterKelurahan(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        >
+          <option value="">-- Semua Kelurahan --</option>
+          {kelurahanList.map((k) => (
+            <option key={k.id} value={k.id.toString()}>
+              {k.name}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          placeholder="Filter Sekolah..."
+          value={filterSekolah}
+          onChange={(e) => setFilterSekolah(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
+        <div className="flex items-center justify-start rounded-md border border-zinc-300 p-2 dark:border-zinc-600">
+          <input
+            id="filter-keterangan"
+            type="checkbox"
+            checked={filterAdaKeterangan}
+            onChange={(e) => setFilterAdaKeterangan(e.target.checked)}
+            className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:bg-zinc-700 dark:ring-offset-zinc-800"
+          />
+          <label htmlFor="filter-keterangan" className="ml-2 text-sm text-zinc-700 dark:text-zinc-300">
+            Ada Keterangan
+          </label>
+      </div>
       </div>
 
       {isLoading ? (
@@ -233,18 +354,28 @@ export default function AdminPengajuanPage() {
                 <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Alamat</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">No. WA</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Status</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Keterangan</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Deskripsi</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {pengajuanList.length > 0 ? (
-                pengajuanList.map((item) => (
+              {currentData.length > 0 ? (
+                currentData.map((item) => (
                   <tr key={item.id} className="border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                     <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
                       {new Date(item.created_at).toLocaleDateString('id-ID')}
                     </td>
                     <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">{item.tahun}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">{item.nama_siswa}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {item.nama_siswa}
+                      {item.keterangan && (
+                        <div className="mt-1">
+                          <span className="text-xs font-normal bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md dark:bg-yellow-900/30 dark:text-yellow-300">
+                            {item.keterangan}
+                          </span>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">{item.nama_sekolah} <br/> <span className="text-xs opacity-75">Kelas: {item.kelas}</span></td>
                     <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">Ayah: {item.nama_ayah} <br/> Ibu: {item.nama_ibu}</td>
                     <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
@@ -274,24 +405,62 @@ export default function AdminPengajuanPage() {
                     <td className="px-6 py-4 text-sm">
                       <input
                         type="text"
-                        value={item.keterangan || ''}
-                        onChange={(e) => updateKeteranganLocal(item.id, e.target.value)}
-                        onBlur={(e) => saveKeterangan(item.id, e.target.value)}
+                        value={item.deskripsi || ''}
+                        onChange={(e) => updateDeskripsiLocal(item.id, e.target.value)}
+                        onBlur={(e) => saveDeskripsi(item.id, e.target.value)}
                         placeholder="-"
                         className="w-full min-w-[150px] rounded-md border border-zinc-200 bg-transparent px-2 py-1 text-sm focus:border-blue-500 focus:outline-none dark:border-zinc-700"
                       />
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                        <button 
+                          onClick={() => handleDelete(item.id)}
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                        >
+                          Hapus
+                        </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-zinc-600 dark:text-zinc-400">
-                    Belum ada data pengajuan.
+                  <td colSpan={10} className="px-6 py-8 text-center text-zinc-600 dark:text-zinc-400">
+                    {pengajuanList.length > 0
+                      ? 'Tidak ada data yang cocok dengan filter.'
+                      : 'Belum ada data pengajuan.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && filteredPengajuan.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            Menampilkan {startIndex + 1} sampai {Math.min(endIndex, filteredPengajuan.length)} dari {filteredPengajuan.length} data
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="rounded-md bg-zinc-200 px-3 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-300 disabled:opacity-50 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+            >
+              Sebelumnya
+            </button>
+            <span className="flex items-center px-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="rounded-md bg-zinc-200 px-3 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-300 disabled:opacity-50 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       )}
 
@@ -323,26 +492,31 @@ export default function AdminPengajuanPage() {
                   required
                 />
                 {showSuggestions && searchQuery && !selectedStudent && (
-                  <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                    {studentList.filter(s => s.nama_siswa.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
-                      studentList.filter(s => s.nama_siswa.toLowerCase().includes(searchQuery.toLowerCase())).map(s => (
-                        <li
-                          key={s.id}
-                          onClick={() => {
-                            setSelectedStudent(s);
-                            setSearchQuery(s.nama_siswa);
-                            setShowSuggestions(false);
-                          }}
-                          className="cursor-pointer px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                        >
-                          <div className="font-medium text-zinc-900 dark:text-zinc-100">{s.nama_siswa}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{s.nama_sekolah} - {s.kelas}</div>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">Siswa tidak ditemukan</li>
-                    )}
-                  </ul>
+                  (() => {
+                    const suggestedStudents = studentList.filter(s => s.nama_siswa.toLowerCase().includes(searchQuery.toLowerCase()));
+                    return (
+                      <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                        {suggestedStudents.length > 0 ? (
+                          suggestedStudents.map(s => (
+                            <li
+                              key={s.id}
+                              onClick={() => {
+                                setSelectedStudent(s);
+                                setSearchQuery(s.nama_siswa);
+                                setShowSuggestions(false);
+                              }}
+                              className="cursor-pointer px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                            >
+                              <div className="font-medium text-zinc-900 dark:text-zinc-100">{s.nama_siswa}</div>
+                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{s.nama_sekolah} - {s.kelas}</div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">Siswa tidak ditemukan</li>
+                        )}
+                      </ul>
+                    );
+                  })()
                 )}
               </div>
 

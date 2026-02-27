@@ -33,6 +33,7 @@ export default function DataSiswaPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State untuk Filter
+  const [filterNama, setFilterNama] = useState('');
   const [filterRT, setFilterRT] = useState('');
   const [filterRW, setFilterRW] = useState('');
   const [filterKelurahan, setFilterKelurahan] = useState('');
@@ -318,10 +319,11 @@ export default function DataSiswaPage() {
   };
 
   const filteredStudents = students.filter((student) => {
-    const matchRT = filterRT ? student.rt.toLowerCase().includes(filterRT.toLowerCase()) : true;
-    const matchRW = filterRW ? student.rw.toLowerCase().includes(filterRW.toLowerCase()) : true;
+    const matchNama = filterNama ? student.nama_siswa.toLowerCase().includes(filterNama.toLowerCase()) : true;
+    const matchRT = filterRT ? student.rt === filterRT : true;
+    const matchRW = filterRW ? student.rw === filterRW : true;
     const matchKelurahan = filterKelurahan ? student.kelurahan_id.toString() === filterKelurahan : true;
-    return matchRT && matchRW && matchKelurahan;
+    return matchNama && matchRT && matchRW && matchKelurahan;
   });
 
   // Pagination Logic
@@ -339,7 +341,7 @@ export default function DataSiswaPage() {
   // Reset halaman ke 1 jika filter berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterRT, filterRW, filterKelurahan]);
+  }, [filterNama, filterRT, filterRW, filterKelurahan]);
 
   return (
     <div>
@@ -377,7 +379,14 @@ export default function DataSiswaPage() {
       </div>
 
       {/* Filter Section */}
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <input
+          type="text"
+          placeholder="Cari Nama Siswa..."
+          value={filterNama}
+          onChange={(e) => setFilterNama(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
         <select
           value={filterKelurahan}
           onChange={(e) => setFilterKelurahan(e.target.value)}
@@ -390,20 +399,26 @@ export default function DataSiswaPage() {
             </option>
           ))}
         </select>
-        <input
-          type="text"
-          placeholder="Cari RT..."
+        <select
           value={filterRT}
           onChange={(e) => setFilterRT(e.target.value)}
           className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
-        />
-        <input
-          type="text"
-          placeholder="Cari RW..."
+        >
+          <option value="">-- Semua RT --</option>
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+            <option key={num} value={num.toString()}>{num}</option>
+          ))}
+        </select>
+        <select
           value={filterRW}
           onChange={(e) => setFilterRW(e.target.value)}
           className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
-        />
+        >
+          <option value="">-- Semua RW --</option>
+          {Array.from({ length: 15 }, (_, i) => i + 1).map((num) => (
+            <option key={num} value={num.toString()}>{num}</option>
+          ))}
+        </select>
       </div>
 
       {/* Modal Tambah Siswa */}

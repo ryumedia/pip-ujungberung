@@ -30,7 +30,7 @@ type RiwayatPengajuan = {
   created_at: string;
   tahun: string;
   status_pengajuan: string | null;
-  keterangan: string | null;
+  deskripsi: string | null;
 };
 
 export default function PengajuanPage() {
@@ -148,7 +148,7 @@ export default function PengajuanPage() {
   const fetchRiwayatPengajuan = async (student: Student) => {
     const { data, error } = await supabase
       .from('pengajuan')
-      .select('id, created_at, tahun, status_pengajuan, keterangan')
+      .select('id, created_at, tahun, status_pengajuan, deskripsi')
       .eq('nama_siswa', student.nama_siswa)
       .eq('nama_ibu', student.nama_ibu)
       .order('created_at', { ascending: false });
@@ -276,7 +276,7 @@ export default function PengajuanPage() {
         kelurahan_id: selectedStudent.kelurahan_id,
         no_wa: selectedStudent.no_wa,
         status_pengajuan: 'Menunggu',
-        keterangan: ''
+        keterangan: selectedStudent.keterangan || null
       });
 
       if (error) throw error;
@@ -303,7 +303,10 @@ export default function PengajuanPage() {
       }
     }
 
-    setNewDataFormData(prev => ({ ...prev, [name]: value }));
+    const uppercaseFields = ['nama_siswa', 'nama_sekolah', 'nama_ayah', 'nama_ibu'];
+    const finalValue = uppercaseFields.includes(name) ? value.toUpperCase() : value;
+
+    setNewDataFormData(prev => ({ ...prev, [name]: finalValue }));
   };
 
   const handleAddNewStudent = async (e: React.FormEvent) => {
@@ -545,7 +548,7 @@ export default function PengajuanPage() {
                             <tr className="border-b border-zinc-200 dark:border-zinc-700">
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Tahun</th>
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Status</th>
-                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Keterangan</th>
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Deskripsi</th>
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Tanggal</th>
                             </tr>
                           </thead>
@@ -564,7 +567,7 @@ export default function PengajuanPage() {
                                     {item.status_pengajuan || 'Menunggu'}
                                   </span>
                                 </td>
-                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.keterangan || '-'}</td>
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.deskripsi || '-'}</td>
                                 <td className="py-2 text-zinc-600 dark:text-zinc-400">{new Date(item.created_at).toLocaleDateString('id-ID')}</td>
                               </tr>
                             ))}
