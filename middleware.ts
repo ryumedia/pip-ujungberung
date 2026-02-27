@@ -2,10 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Safety check untuk Env Vars agar tidak crash 500 tanpa log yang jelas
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.error('Missing Supabase environment variables')
-    return NextResponse.next()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Added for Vercel debugging
+  console.log('Middleware Check:', {
+    url: `Type: ${typeof supabaseUrl}, Length: ${supabaseUrl?.length ?? 0}`,
+    key: `Type: ${typeof supabaseAnonKey}, Length: ${supabaseAnonKey?.length ?? 0}`,
+  });
+
+  // More robust check for Vercel environment
+  if (!supabaseUrl || supabaseUrl.length === 0 || !supabaseAnonKey || supabaseAnonKey.length === 0) {
+    console.error('CRITICAL: Supabase environment variables are missing or empty in the Vercel environment.');
+    // Stop further execution if env vars are not set correctly
+    return new Response('Internal Server Error: Missing Configuration', { status: 500 });
   }
 
   let response = NextResponse.next({
@@ -15,8 +25,8 @@ export async function middleware(request: NextRequest) {
   })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
