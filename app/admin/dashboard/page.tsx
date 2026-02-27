@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 
 function RekapitulasiSiswa({
   totalSiswa,
@@ -187,7 +187,7 @@ function RekapitulasiPengajuan({
   );
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -434,5 +434,13 @@ export default function Dashboard() {
         statusCounts={statusCounts}
       />
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
