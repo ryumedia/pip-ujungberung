@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import * as XLSX from 'xlsx';
+// import * as XLSX from 'xlsx';
 
 type StudentWithKelurahan = {
   id: number;
@@ -238,6 +238,10 @@ export default function DataSiswaPage() {
 
     setIsImporting(true);
     try {
+      alert('Fungsi import Excel dinonaktifkan sementara untuk perbaikan server.');
+      // Vercel build fix: The following code uses xlsx which is not compatible with Edge Runtime.
+      // This functionality needs to be moved to a Serverless Function (API Route).
+      /*
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -310,6 +314,7 @@ export default function DataSiswaPage() {
         alert(`Berhasil mengimport ${studentsToInsert.length} data siswa.`);
         fetchData();
       }
+      */
     } catch (error: any) {
       console.error('Import error:', error);
       alert('Gagal mengimport file: ' + error.message);
