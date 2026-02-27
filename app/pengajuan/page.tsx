@@ -77,10 +77,19 @@ export default function PengajuanPage() {
   const router = useRouter();
 
   useEffect(() => {
-    fetchStudents();
-    fetchKelurahan();
-    fetchUserRole();
-  }, []);
+    const checkAuthAndLoadData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/');
+        return;
+      }
+      // User is authenticated, proceed to fetch data
+      fetchStudents();
+      fetchKelurahan();
+      fetchUserRole();
+    };
+    checkAuthAndLoadData();
+  }, [router]);
 
   const fetchStudents = async () => {
     setIsLoadingData(true);
