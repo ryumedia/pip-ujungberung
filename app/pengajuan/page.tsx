@@ -304,6 +304,22 @@ export default function HomePage() {
         return;
       }
 
+      // Cek duplikasi data berdasarkan nama_siswa dan nama_ibu
+      const { data: existingData, error: checkError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('nama_siswa', newDataFormData.nama_siswa)
+        .eq('nama_ibu', newDataFormData.nama_ibu);
+
+      if (checkError) throw checkError;
+
+      if (existingData && existingData.length > 0) {
+        alert(`Data siswa dengan nama "${newDataFormData.nama_siswa}" dan nama ibu "${newDataFormData.nama_ibu}" sudah ada.`);
+        setIsAddingNew(false);
+        return;
+      }
+
+
       const { error } = await supabase.from('students').insert([{
         nama_siswa: newDataFormData.nama_siswa,
         nama_sekolah: newDataFormData.nama_sekolah,

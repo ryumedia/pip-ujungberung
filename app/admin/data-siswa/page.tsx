@@ -163,6 +163,28 @@ export default function DataSiswaPage() {
         return;
       }
 
+      // Cek duplikasi data berdasarkan nama_siswa dan nama_ibu
+      const { data: existingData, error: checkError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('nama_siswa', formData.nama_siswa)
+        .eq('nama_ibu', formData.nama_ibu);
+
+      if (checkError) throw checkError;
+
+      if (existingData && existingData.length > 0) {
+        // Jika sedang edit, pastikan data yang ditemukan bukan data yang sedang diedit
+        const isDuplicate = editingId
+          ? existingData.some((item) => item.id !== editingId)
+          : true;
+
+        if (isDuplicate) {
+          alert(`Data siswa dengan nama "${formData.nama_siswa}" dan nama ibu "${formData.nama_ibu}" sudah ada.`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const payload = {
         nama_siswa: formData.nama_siswa,
         nama_sekolah: formData.nama_sekolah,
