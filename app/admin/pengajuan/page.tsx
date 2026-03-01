@@ -54,6 +54,9 @@ export default function AdminPengajuanPage() {
 
   // Filter states
   const [filterTahun, setFilterTahun] = useState('');
+  const [filterNamaSiswa, setFilterNamaSiswa] = useState('');
+  const [filterNamaAyah, setFilterNamaAyah] = useState('');
+  const [filterNamaIbu, setFilterNamaIbu] = useState('');
   const [filterKelurahan, setFilterKelurahan] = useState('');
   const [filterSekolah, setFilterSekolah] = useState('');
   const [filterAdaKeterangan, setFilterAdaKeterangan] = useState(false);
@@ -260,6 +263,9 @@ export default function AdminPengajuanPage() {
   const filteredPengajuan = pengajuanList.filter(item => {
     return (
       (filterTahun ? item.tahun.includes(filterTahun) : true) &&
+      (filterNamaSiswa ? item.nama_siswa.toLowerCase().includes(filterNamaSiswa.toLowerCase()) : true) &&
+      (filterNamaAyah ? item.nama_ayah.toLowerCase().includes(filterNamaAyah.toLowerCase()) : true) &&
+      (filterNamaIbu ? item.nama_ibu.toLowerCase().includes(filterNamaIbu.toLowerCase()) : true) &&
       (filterKelurahan ? item.kelurahan_id?.toString() === filterKelurahan : true) &&
       (filterSekolah ? item.nama_sekolah.toLowerCase().includes(filterSekolah.toLowerCase()) : true) &&
       (filterAdaKeterangan ? !!item.keterangan : true)
@@ -280,7 +286,7 @@ export default function AdminPengajuanPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterTahun, filterKelurahan, filterSekolah, filterAdaKeterangan]);
+  }, [filterTahun, filterNamaSiswa, filterNamaAyah, filterNamaIbu, filterKelurahan, filterSekolah, filterAdaKeterangan]);
 
   return (
     <div>
@@ -304,6 +310,27 @@ export default function AdminPengajuanPage() {
           placeholder="Filter Tahun..."
           value={filterTahun}
           onChange={(e) => setFilterTahun(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
+        <input
+          type="text"
+          placeholder="Cari Nama Siswa..."
+          value={filterNamaSiswa}
+          onChange={(e) => setFilterNamaSiswa(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
+        <input
+          type="text"
+          placeholder="Filter Nama Ayah..."
+          value={filterNamaAyah}
+          onChange={(e) => setFilterNamaAyah(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
+        <input
+          type="text"
+          placeholder="Filter Nama Ibu..."
+          value={filterNamaIbu}
+          onChange={(e) => setFilterNamaIbu(e.target.value)}
           className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
         />
         <select

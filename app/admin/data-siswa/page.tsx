@@ -34,6 +34,8 @@ export default function DataSiswaPage() {
 
   // State untuk Filter
   const [filterNama, setFilterNama] = useState('');
+  const [filterNamaAyah, setFilterNamaAyah] = useState('');
+  const [filterNamaIbu, setFilterNamaIbu] = useState('');
   const [filterRT, setFilterRT] = useState('');
   const [filterRW, setFilterRW] = useState('');
   const [filterKelurahan, setFilterKelurahan] = useState('');
@@ -347,10 +349,12 @@ export default function DataSiswaPage() {
 
   const filteredStudents = students.filter((student) => {
     const matchNama = filterNama ? student.nama_siswa.toLowerCase().includes(filterNama.toLowerCase()) : true;
+    const matchNamaAyah = filterNamaAyah ? student.nama_ayah.toLowerCase().includes(filterNamaAyah.toLowerCase()) : true;
+    const matchNamaIbu = filterNamaIbu ? student.nama_ibu.toLowerCase().includes(filterNamaIbu.toLowerCase()) : true;
     const matchRT = filterRT ? student.rt === filterRT : true;
     const matchRW = filterRW ? student.rw === filterRW : true;
     const matchKelurahan = filterKelurahan ? student.kelurahan_id.toString() === filterKelurahan : true;
-    return matchNama && matchRT && matchRW && matchKelurahan;
+    return matchNama && matchNamaAyah && matchNamaIbu && matchRT && matchRW && matchKelurahan;
   });
 
   // Pagination Logic
@@ -368,7 +372,7 @@ export default function DataSiswaPage() {
   // Reset halaman ke 1 jika filter berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterNama, filterRT, filterRW, filterKelurahan]);
+  }, [filterNama, filterNamaAyah, filterNamaIbu, filterRT, filterRW, filterKelurahan]);
 
   return (
     <div>
@@ -412,6 +416,20 @@ export default function DataSiswaPage() {
           placeholder="Cari Nama Siswa..."
           value={filterNama}
           onChange={(e) => setFilterNama(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
+        <input
+          type="text"
+          placeholder="Cari Nama Ayah..."
+          value={filterNamaAyah}
+          onChange={(e) => setFilterNamaAyah(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        />
+        <input
+          type="text"
+          placeholder="Cari Nama Ibu..."
+          value={filterNamaIbu}
+          onChange={(e) => setFilterNamaIbu(e.target.value)}
           className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
         />
         <select

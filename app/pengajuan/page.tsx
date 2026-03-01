@@ -176,7 +176,10 @@ export default function HomePage() {
         }
       }
 
-      setEditFormData({ ...editFormData, [name]: value });
+      const uppercaseFields = ['nama_siswa', 'nama_sekolah', 'nama_ayah', 'nama_ibu'];
+      const finalValue = uppercaseFields.includes(name) ? value.toUpperCase() : value;
+
+      setEditFormData({ ...editFormData, [name]: finalValue });
     }
   };
 
