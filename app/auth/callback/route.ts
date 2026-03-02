@@ -8,14 +8,15 @@ export async function GET(request: Request) {
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
-  if (code) {
-    const cookieStore = await cookies()
-    const supabase = createClient(cookieStore)
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
-    }
+if (code) {
+  const cookieStore = cookies() // <-- Hapus await, biarkan berupa Promise
+  const supabase = await createClient(cookieStore) // <-- Tambahkan await di sini (karena createClient kemungkinan async)
+  
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  if (!error) {
+    return NextResponse.redirect(`${origin}${next}`)
   }
+}
 
   // return the user to an error page with instructions
   return NextResponse.redirect(`/auth/auth-code-error`)
