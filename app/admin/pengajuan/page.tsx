@@ -432,7 +432,7 @@ export default function AdminPengajuanPage() {
                         onChange={(e) => handleStatusChange(item.id, e.target.value)}
                         className={`rounded-md border px-2 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-800 
                           ${item.status_pengajuan === 'Sudah SK' ? 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-400' : 
-                            item.status_pengajuan === 'Tidak Terdaftar' ? 'border-red-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-red-900/30 dark:text-gray-400' :
+                            item.status_pengajuan === 'Tidak Terdaftar' ? 'border-black-200 bg-black-50 text-white-700 dark:border-black-800 dark:bg-black-900/30 dark:text-white-400' :
                             item.status_pengajuan === 'Tidak Diajukan' ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400' :
                             item.status_pengajuan === 'Tidak Layak PIP' ? 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
                             item.status_pengajuan === 'Diinput' ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400' :
