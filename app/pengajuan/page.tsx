@@ -246,7 +246,7 @@ export default function HomePage() {
         .eq('tahun', tahunPengajuan);
 
       if (checkError) throw checkError;
-
+      
       if (existingData && existingData.length > 0) {
         throw new Error(`Siswa ${selectedStudent.nama_siswa} sudah terdaftar di pengajuan tahun .`);
       }
@@ -706,4 +706,5 @@ export default function HomePage() {
       )}
     </div>
   );
+
 }

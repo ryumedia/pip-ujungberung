@@ -130,6 +130,7 @@ function RekapitulasiPengajuan({
   const statuses = [
     { key: "Menunggu", label: "Menunggu" },
     { key: "Diinput", label: "Diinput" },
+    { key: "Tidak Layak PIP", label: "Tidak Layak PIP" },
     { key: "Sudah SK", label: "Sudah SK" },
     { key: "Diajukan Lain", label: "Diajukan Lain" },
     { key: "Tidak Terdaftar", label: "Tidak Terdaftar" },
@@ -137,12 +138,13 @@ function RekapitulasiPengajuan({
   ];
 
   const statusColors: { [key: string]: string } = {
-    "Menunggu": "bg-yellow-100 dark:bg-yellow-900/20",
-    "Diinput": "bg-blue-100 dark:bg-blue-900/20",
-    "Sudah SK": "bg-green-100 dark:bg-green-900/20",
-    "Diajukan Lain": "bg-purple-100 dark:bg-purple-900/20",
-    "Tidak Terdaftar": "bg-red-100 dark:bg-red-900/20",
-    "Tidak Diajukan": "bg-zinc-200 dark:bg-zinc-800",
+    "Menunggu": "bg-gray-100 dark:bg-gray-900/20",
+    "Diinput": "bg-green-100 dark:bg-green-900/20",
+    "Tidak Layak PIP": "bg-orange-100 dark:bg-orange-900/20",
+    "Sudah SK": "bg-purple-100 dark:bg-purple-900/20",
+    "Diajukan Lain": "bg-yellow-100 dark:bg-yellow-900/20",
+    "Tidak Terdaftar": "bg-zinc-200 dark:bg-zinc-900/20",
+    "Tidak Diajukan": "bg-red-100 dark:bg-red-900/20",
   };
 
   return (
@@ -336,7 +338,8 @@ function DashboardContent() {
     setTotalPengajuan(filteredPengajuan.length);
 
     const initialCounts = {
-      "Menunggu": 0, "Diinput": 0, "Sudah SK": 0, "Diajukan Lain": 0,
+      "Menunggu": 0, "Diinput": 0, "Tidak Layak PIP": 0,
+      "Sudah SK": 0, "Diajukan Lain": 0,
       "Tidak Terdaftar": 0, "Tidak Diajukan": 0,
     };
 

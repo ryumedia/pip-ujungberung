@@ -59,6 +59,7 @@ export default function AdminPengajuanPage() {
   const [filterNamaIbu, setFilterNamaIbu] = useState('');
   const [filterKelurahan, setFilterKelurahan] = useState('');
   const [filterSekolah, setFilterSekolah] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [filterAdaKeterangan, setFilterAdaKeterangan] = useState(false);
   const [kelurahanList, setKelurahanList] = useState<Kelurahan[]>([]);
 
@@ -268,6 +269,7 @@ export default function AdminPengajuanPage() {
       (filterNamaIbu ? item.nama_ibu.toLowerCase().includes(filterNamaIbu.toLowerCase()) : true) &&
       (filterKelurahan ? item.kelurahan_id?.toString() === filterKelurahan : true) &&
       (filterSekolah ? item.nama_sekolah.toLowerCase().includes(filterSekolah.toLowerCase()) : true) &&
+      (filterStatus ? (item.status_pengajuan || 'Menunggu') === filterStatus : true) &&
       (filterAdaKeterangan ? !!item.keterangan : true)
     );
   });
@@ -286,7 +288,7 @@ export default function AdminPengajuanPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterTahun, filterNamaSiswa, filterNamaAyah, filterNamaIbu, filterKelurahan, filterSekolah, filterAdaKeterangan]);
+  }, [filterTahun, filterNamaSiswa, filterNamaAyah, filterNamaIbu, filterKelurahan, filterSekolah, filterStatus, filterAdaKeterangan]);
 
   return (
     <div>
@@ -352,6 +354,20 @@ export default function AdminPengajuanPage() {
           onChange={(e) => setFilterSekolah(e.target.value)}
           className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
         />
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        >
+          <option value="">-- Semua Status --</option>
+          <option value="Menunggu">Menunggu</option>
+          <option value="Diinput">Diinput</option>
+          <option value="Sudah SK">Sudah SK</option>
+          <option value="Diajukan Lain">Diajukan Lain</option>
+          <option value="Tidak Terdaftar">Tidak Terdaftar</option>
+          <option value="Tidak Layak PIP">Tidak Layak PIP</option>
+          <option value="Tidak Diajukan">Tidak Diajukan</option>
+        </select>
         <div className="flex items-center justify-start rounded-md border border-zinc-300 p-2 dark:border-zinc-600">
           <input
             id="filter-keterangan"
@@ -426,6 +442,7 @@ export default function AdminPengajuanPage() {
                         <option value="Sudah SK">Sudah SK</option>
                         <option value="Diajukan Lain">Diajukan Lain</option>
                         <option value="Tidak Terdaftar">Tidak Terdaftar</option>
+                        <option value="Tidak Layak PIP">Tidak Layak PIP</option>
                         <option value="Tidak Diajukan">Tidak Diajukan</option>
                       </select>
                     </td>
