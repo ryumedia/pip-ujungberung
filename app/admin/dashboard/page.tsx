@@ -29,13 +29,13 @@ function RekapitulasiSiswa({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
+                  strokeWidth="1.5"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197"
-                  ></path>
+                    d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                  />
                 </svg>
               </div>
               <div className="ml-5 w-0 flex-1">
@@ -61,13 +61,13 @@ function RekapitulasiSiswa({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
+                  strokeWidth="1.5"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197"
-                  ></path>
+                    d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                  />
                 </svg>
               </div>
               <div className="ml-5 w-0 flex-1">
@@ -93,13 +93,13 @@ function RekapitulasiSiswa({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
+                  strokeWidth="1.5"
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197"
-                  ></path>
+                    d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                  />
                 </svg>
               </div>
               <div className="ml-5 w-0 flex-1">
@@ -189,6 +189,53 @@ function RekapitulasiPengajuan({
   );
 }
 
+function RekapitulasiJenjang({ jenjangCounts }: { jenjangCounts: { [key: string]: number } }) {
+  const jenjangLevels = [
+    { key: 'SD', label: 'SD' },
+    { key: 'SMP', label: 'SMP' },
+    { key: 'SMA', label: 'SMA' },
+    { key: 'SMK', label: 'SMK' },
+    { key: 'Lainnya', label: 'Lainnya' },
+  ];
+
+  const jenjangColors: { [key: string]: string } = {
+    "SD": "bg-red-200 dark:bg-red-900/20",
+    "SMP": "bg-blue-200 dark:bg-blue-900/20",
+    "SMA": "bg-zinc-300 dark:bg-zinc-900/20",
+    "SMK": "bg-green-200 dark:bg-green-900/20",
+    "Lainnya": "bg-gray-100 dark:bg-gray-900/20",
+  };
+
+  return (
+    <div className="mt-8">
+      <h3 className="text-lg font-medium leading-6 text-zinc-900 dark:text-zinc-100">
+        Rekapitulasi Jenjang
+      </h3>
+      <div className="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        {jenjangLevels.map((jenjang) => (
+          <div
+            key={jenjang.key}
+            className={`overflow-hidden rounded-lg shadow ${
+              jenjangColors[jenjang.key] || "bg-white dark:bg-zinc-800"
+            }`}
+          >
+            <div className="p-5">
+              <dl>
+                <dt className="truncate text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {jenjang.label}
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                  {jenjangCounts[jenjang.key] || 0}
+                </dd>
+              </dl>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent() {
   const supabase = createClient();
   const router = useRouter();
@@ -207,6 +254,9 @@ function DashboardContent() {
   const [uniqueMothers, setUniqueMothers] = useState(0);
   const [totalPengajuan, setTotalPengajuan] = useState(0);
   const [statusCounts, setStatusCounts] = useState<{ [key: string]: number }>(
+    {}
+  );
+  const [jenjangCounts, setJenjangCounts] = useState<{ [key: string]: number }>(
     {}
   );
   const [loading, setLoading] = useState(true);
@@ -358,6 +408,28 @@ function DashboardContent() {
       return acc;
     }, initialCounts);
     setStatusCounts(counts);
+
+    // --- 3. Hitung Rekapitulasi Jenjang ---
+    const jenjangInitialCounts = { SD: 0, SMP: 0, SMA: 0, SMK: 0, Lainnya: 0 };
+    filteredPengajuan.forEach((p) => {
+        if (p.nama_sekolah) {
+            const schoolName = p.nama_sekolah.toUpperCase().trim();
+            if (schoolName.startsWith('SD')) {
+                jenjangInitialCounts.SD++;
+            } else if (schoolName.startsWith('SMP')) {
+                jenjangInitialCounts.SMP++;
+            } else if (schoolName.startsWith('SMA')) {
+                jenjangInitialCounts.SMA++;
+            } else if (schoolName.startsWith('SMK')) {
+                jenjangInitialCounts.SMK++;
+            } else {
+                jenjangInitialCounts.Lainnya++;
+            }
+        } else {
+            jenjangInitialCounts.Lainnya++;
+        }
+    });
+    setJenjangCounts(jenjangInitialCounts);
   }, [students, pengajuan, year, kelurahan, kelurahanList]);
 
   const handleReset = () => {
@@ -436,6 +508,7 @@ function DashboardContent() {
         totalPengajuan={totalPengajuan}
         statusCounts={statusCounts}
       />
+      <RekapitulasiJenjang jenjangCounts={jenjangCounts} />
     </div>
   );
 }
