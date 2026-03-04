@@ -18,6 +18,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 { name: 'Data Kelurahan', href: '/admin/data-kelurahan' },
                 { name: 'Data User', href: '/admin/data-user' },
                 { name: 'Data Siswa', href: '/admin/data-siswa' },
+                { name: 'Data Sekolah', href: '/admin/data-sekolah' },
                 { name: 'Pengajuan', href: '/admin/pengajuan' },
                 { name: 'Pencairan', href: '/admin/pencairan' },
               ].map((item) => (
