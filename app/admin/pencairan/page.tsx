@@ -23,6 +23,15 @@ type Pencairan = {
   nama_pengusul: string | null;
   nama_ayah: string | null;
   tanggal_sk: string | null;
+  rt: string | null;
+  rw: string | null;
+  kelurahan_id: number | null;
+  kelurahan: { name: string } | null;
+};
+
+type Kelurahan = {
+  id: number;
+  name: string;
 };
 
 export default function PencairanPage() {
@@ -30,6 +39,7 @@ export default function PencairanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPencairan, setSelectedPencairan] = useState<Pencairan | null>(null);
 
@@ -38,6 +48,10 @@ export default function PencairanPage() {
   const [filterTahun, setFilterTahun] = useState('');
   const [filterSekolah, setFilterSekolah] = useState('');
   const [filterTipeSk, setFilterTipeSk] = useState('');
+  const [filterRt, setFilterRt] = useState('');
+  const [filterRw, setFilterRw] = useState('');
+  const [filterKelurahan, setFilterKelurahan] = useState('');
+  const [kelurahanList, setKelurahanList] = useState<Kelurahan[]>([]);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +61,20 @@ export default function PencairanPage() {
 
   useEffect(() => {
     fetchData();
+    fetchKelurahanList();
   }, []);
+
+  const fetchKelurahanList = async () => {
+    const { data, error } = await supabase
+      .from('kelurahan')
+      .select('id, name')
+      .order('name');
+    if (error) {
+      console.error('Error fetching kelurahan list:', error);
+    } else {
+      setKelurahanList(data || []);
+    }
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -60,7 +87,10 @@ export default function PencairanPage() {
       while (hasMore) {
         const { data, error } = await supabase
           .from('pencairan')
-          .select('*')
+          .select(`
+            *,
+            kelurahan:kelurahan_id (name)
+          `)
           .order('created_at', { ascending: false })
           .range(from, from + step - 1);
 
@@ -77,7 +107,13 @@ export default function PencairanPage() {
           hasMore = false;
         }
       }
-      setPencairanList(allData);
+
+      // Mapping data untuk menangani format array/object dari join
+      const mappedData = allData.map((item: any) => ({
+        ...item,
+        kelurahan: Array.isArray(item.kelurahan) ? (item.kelurahan[0] || null) : item.kelurahan,
+      }));
+      setPencairanList(mappedData);
     } catch (error: any) {
       console.error('Error fetching pencairan data:', error.message);
       alert('Gagal memuat data pencairan: ' + error.message);
@@ -99,8 +135,11 @@ export default function PencairanPage() {
       ? item.nama_sekolah?.toLowerCase().includes(filterSekolah.toLowerCase())
       : true;
     const matchTipeSk = filterTipeSk ? item.tipe_sk === filterTipeSk : true;
+    const matchRt = filterRt ? item.rt === filterRt : true;
+    const matchRw = filterRw ? item.rw === filterRw : true;
+    const matchKelurahan = filterKelurahan ? item.kelurahan_id?.toString() === filterKelurahan : true;
 
-    return matchNama && matchTahun && matchSekolah && matchTipeSk;
+    return matchNama && matchTahun && matchSekolah && matchTipeSk && matchRt && matchRw && matchKelurahan;
   });
 
   // Pagination Logic
@@ -118,7 +157,7 @@ export default function PencairanPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterTahun, filterSekolah, filterTipeSk]);
+  }, [searchQuery, filterTahun, filterSekolah, filterTipeSk, filterRt, filterRw, filterKelurahan]);
 
   const handleExport = () => {
     if (filteredData.length === 0) {
@@ -210,6 +249,115 @@ export default function PencairanPage() {
     }
   };
 
+  const handleSync = async () => {
+    if (!confirm('Apakah Anda yakin ingin melakukan sinkronisasi data? Proses ini akan mengisi kolom RT, RW, dan Kelurahan di tabel Pencairan berdasarkan kecocokan Nama Siswa dengan Data Siswa.')) return;
+
+    setIsSyncing(true);
+    try {
+      // 1. Ambil data referensi dari tabel students
+      let allStudents: any[] = [];
+      let from = 0;
+      const step = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('students')
+          .select('nama_siswa, rt, rw, kelurahan_id')
+          .range(from, from + step - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allStudents = [...allStudents, ...data];
+          if (data.length < step) hasMore = false;
+          else from += step;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // Buat Map untuk pencarian cepat: nama_siswa (lowercase) -> data student
+      const studentMap = new Map();
+      allStudents.forEach(s => {
+        if (s.nama_siswa) {
+          studentMap.set(s.nama_siswa.toLowerCase().trim(), s);
+        }
+      });
+
+      // 2. Ambil semua data pencairan yang perlu diupdate
+      let allPencairan: any[] = [];
+      from = 0;
+      hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('pencairan')
+          .select('id, nama_siswa')
+          .range(from, from + step - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allPencairan = [...allPencairan, ...data];
+          if (data.length < step) hasMore = false;
+          else from += step;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // 3. Lakukan pencocokan dan update
+      let updatedCount = 0;
+      const updates = [];
+
+      for (const p of allPencairan) {
+        if (!p.nama_siswa) continue;
+        const match = studentMap.get(p.nama_siswa.toLowerCase().trim());
+        if (match) {
+          updates.push({
+            id: p.id,
+            rt: match.rt,
+            rw: match.rw,
+            kelurahan_id: match.kelurahan_id
+          });
+        }
+      }
+
+      if (updates.length === 0) {
+        alert('Tidak ada data yang cocok untuk disinkronisasi.');
+        setIsSyncing(false);
+        return;
+      }
+
+      // 4. Eksekusi Update (Batching)
+      const batchSize = 20;
+      for (let i = 0; i < updates.length; i += batchSize) {
+        const batch = updates.slice(i, i + batchSize);
+        await Promise.all(batch.map(u => 
+          supabase
+            .from('pencairan')
+            .update({
+              rt: u.rt,
+              rw: u.rw,
+              kelurahan_id: u.kelurahan_id
+            })
+            .eq('id', u.id)
+        ));
+        updatedCount += batch.length;
+      }
+
+      alert(`Sinkronisasi berhasil! ${updatedCount} data telah diperbarui.`);
+      fetchData();
+
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      alert('Gagal melakukan sinkronisasi: ' + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -221,6 +369,9 @@ export default function PencairanPage() {
             <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="hidden" ref={fileInputRef} />
             <button onClick={handleImportClick} disabled={isImporting} className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
                 {isImporting ? 'Mengimport...' : 'Import Excel'}
+            </button>
+            <button onClick={handleSync} disabled={isSyncing} className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
+                {isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Data'}
             </button>
             <button onClick={handleExport} disabled={isExporting} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
                 {isExporting ? 'Mengekspor...' : 'Download Excel'}
@@ -264,6 +415,38 @@ export default function PencairanPage() {
             <option key={String(tipe)} value={String(tipe)}>{tipe}</option>
           ))}
         </select>
+        <select
+          value={filterKelurahan}
+          onChange={(e) => setFilterKelurahan(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        >
+          <option value="">-- Semua Kelurahan --</option>
+          {kelurahanList.map((k) => (
+            <option key={k.id} value={k.id.toString()}>
+              {k.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterRt}
+          onChange={(e) => setFilterRt(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        >
+          <option value="">-- Semua RT --</option>
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+            <option key={num} value={num.toString()}>{num}</option>
+          ))}
+        </select>
+        <select
+          value={filterRw}
+          onChange={(e) => setFilterRw(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        >
+          <option value="">-- Semua RW --</option>
+          {Array.from({ length: 15 }, (_, i) => i + 1).map((num) => (
+            <option key={num} value={num.toString()}>{num}</option>
+          ))}
+        </select>
       </div>
 
       {isLoading ? (
@@ -280,6 +463,8 @@ export default function PencairanPage() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Kelas</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Nama Sekolah</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Nama Ibu</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">RT / RW</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Kelurahan</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Virtual Account</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">No. Rekening</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Tahap</th>
@@ -309,6 +494,8 @@ export default function PencairanPage() {
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.kelas || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.nama_sekolah || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.nama_ibu || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.rt && item.rw ? `${item.rt} / ${item.rw}` : '-'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.kelurahan?.name || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.virtual_account || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.nomer_rekening || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.tahap || '-'}</td>
@@ -378,6 +565,8 @@ export default function PencairanPage() {
               <DetailRow label="Kelas" value={selectedPencairan.kelas} />
               <DetailRow label="Nama Sekolah" value={selectedPencairan.nama_sekolah} />
               <DetailRow label="Nama Ibu" value={selectedPencairan.nama_ibu} />
+              <DetailRow label="RT / RW" value={selectedPencairan.rt && selectedPencairan.rw ? `${selectedPencairan.rt} / ${selectedPencairan.rw}` : '-'} />
+              <DetailRow label="Kelurahan" value={selectedPencairan.kelurahan?.name || '-'} />
               <DetailRow label="Virtual Account" value={selectedPencairan.virtual_account} />
               <DetailRow label="Nomer Rekening" value={selectedPencairan.nomer_rekening} />
               <DetailRow label="Tahap" value={selectedPencairan.tahap} />
