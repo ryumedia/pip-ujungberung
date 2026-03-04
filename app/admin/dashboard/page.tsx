@@ -143,7 +143,7 @@ function RekapitulasiPengajuan({
     "Tidak Layak PIP": "bg-orange-100 dark:bg-orange-900/20",
     "Sudah SK": "bg-purple-100 dark:bg-purple-900/20",
     "Diajukan Lain": "bg-yellow-100 dark:bg-yellow-900/20",
-    "Tidak Terdaftar": "bg-zinc-200 dark:bg-zinc-900/20",
+    "Tidak Terdaftar": "bg-blue-200 dark:bg-blue-900/20",
     "Tidak Diajukan": "bg-red-100 dark:bg-red-900/20",
   };
 
