@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import * as XLSX from 'xlsx';
 
 type School = {
   id: number;
@@ -15,6 +16,12 @@ export default function DataSekolahPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [namaSekolah, setNamaSekolah] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const supabase = createClient();
 
@@ -25,13 +32,32 @@ export default function DataSekolahPage() {
   const fetchSchools = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('schools')
-        .select('*')
-        .order('nama_sekolah', { ascending: true });
+      let allSchools: School[] = [];
+      let from = 0;
+      const step = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
-      setSchools(data || []);
+      while(hasMore) {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('*')
+          .order('nama_sekolah', { ascending: true })
+          .range(from, from + step - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allSchools = [...allSchools, ...data];
+          if (data.length < step) {
+            hasMore = false;
+          } else {
+            from += step;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+      setSchools(allSchools);
     } catch (error: any) {
       alert('Gagal memuat data sekolah: ' + error.message);
     } finally {
@@ -98,6 +124,81 @@ export default function DataSekolahPage() {
     setIsModalOpen(true);
   };
 
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      if (jsonData.length === 0) {
+        alert('File Excel kosong.');
+        setIsImporting(false);
+        return;
+      }
+
+      const schoolsToInsert = jsonData.map((row: any) => {
+        const key = Object.keys(row).find(k => k.trim().toLowerCase() === 'nama sekolah');
+        if (!key || !row[key]) {
+          return null;
+        }
+        return {
+          nama_sekolah: String(row[key]).trim(),
+        };
+      }).filter((school): school is { nama_sekolah: string } => school !== null && school.nama_sekolah !== '');
+
+      if (schoolsToInsert.length === 0) {
+        alert('Tidak ada data sekolah yang valid ditemukan. Pastikan file Excel Anda memiliki kolom "nama sekolah" dengan data di dalamnya.');
+        setIsImporting(false);
+        return;
+      }
+
+      // Proses unggah data dalam batch untuk menangani lebih dari 1000 baris
+      const chunkSize = 500;
+      for (let i = 0; i < schoolsToInsert.length; i += chunkSize) {
+        const chunk = schoolsToInsert.slice(i, i + chunkSize);
+        const { error } = await supabase.from('schools').insert(chunk);
+        if (error) {
+          if (error.code === '23505') { // Kode error untuk pelanggaran unique constraint
+            throw new Error(`Gagal mengimpor data karena ada nama sekolah yang duplikat. Silakan periksa kembali file Anda. Detail: ${error.details}`);
+          }
+          throw error;
+        }
+      }
+
+      alert(`Berhasil mengimpor ${schoolsToInsert.length} data sekolah.`);
+      fetchSchools();
+    } catch (error: any) {
+      console.error('Import error:', error);
+      alert('Gagal mengimpor file: ' + error.message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Pagination Logic
+  const totalPages = Math.ceil(schools.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = schools.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -105,12 +206,15 @@ export default function DataSekolahPage() {
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Data Sekolah</h2>
           <p className="mt-1 text-zinc-600 dark:text-zinc-400">Daftar nama sekolah yang terdaftar.</p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-        >
-          Tambah Sekolah
-        </button>
+        <div className="flex gap-3">
+          <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="hidden" ref={fileInputRef} />
+          <button onClick={handleImportClick} disabled={isImporting} className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
+            {isImporting ? 'Mengimport...' : 'Import Excel'}
+          </button>
+          <button onClick={openAddModal} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+            Tambah Sekolah
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -127,9 +231,9 @@ export default function DataSekolahPage() {
             </thead>
             <tbody>
               {schools.length > 0 ? (
-                schools.map((school, index) => (
+                currentData.map((school, index) => (
                   <tr key={school.id} className="border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">{index + 1}</td>
+                    <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">{startIndex + index + 1}</td>
                     <td className="px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">{school.nama_sekolah}</td>
                     <td className="px-6 py-4 text-sm text-right">
                       <div className="flex justify-end gap-3">
@@ -158,6 +262,34 @@ export default function DataSekolahPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && schools.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            Menampilkan {startIndex + 1} sampai {Math.min(endIndex, schools.length)} dari {schools.length} data
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="rounded-md bg-zinc-200 px-3 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-300 disabled:opacity-50 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+            >
+              Sebelumnya
+            </button>
+            <span className="flex items-center px-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="rounded-md bg-zinc-200 px-3 py-1 text-sm font-medium text-zinc-700 hover:bg-zinc-300 disabled:opacity-50 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       )}
 

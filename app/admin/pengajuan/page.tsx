@@ -52,6 +52,23 @@ export default function AdminPengajuanPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // States for Edit Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<PengajuanWithKelurahan | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    tahun: '',
+    nama_siswa: '',
+    nama_sekolah: '',
+    kelas: '',
+    nama_ayah: '',
+    nama_ibu: '',
+    rt: '',
+    rw: '',
+    no_wa: '',
+    kelurahan_id: '',
+    keterangan: ''
+  });
+
   // Filter states
   const [filterTahun, setFilterTahun] = useState('');
   const [filterNamaSiswa, setFilterNamaSiswa] = useState('');
@@ -205,6 +222,62 @@ export default function AdminPengajuanPage() {
       fetchData(); // Refresh the table
     } catch (error: any) {
       alert('Gagal menghapus data pengajuan: ' + error.message);
+    }
+  };
+
+  const openEditModal = (item: PengajuanWithKelurahan) => {
+    setEditingItem(item);
+    setEditFormData({
+      tahun: item.tahun,
+      nama_siswa: item.nama_siswa,
+      nama_sekolah: item.nama_sekolah,
+      kelas: item.kelas,
+      nama_ayah: item.nama_ayah,
+      nama_ibu: item.nama_ibu,
+      rt: item.rt,
+      rw: item.rw,
+      no_wa: item.no_wa,
+      kelurahan_id: item.kelurahan_id.toString(),
+      keterangan: item.keterangan || ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdatePengajuan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) {
+      alert('Tidak ada data yang dipilih untuk diedit.');
+      return;
+    }
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
+        ...editFormData,
+        kelurahan_id: parseInt(editFormData.kelurahan_id),
+        keterangan: editFormData.keterangan || null
+      };
+
+      const { error } = await supabase
+        .from('pengajuan')
+        .update(payload)
+        .eq('id', editingItem.id);
+
+      if (error) throw error;
+
+      alert('Data pengajuan berhasil diperbarui!');
+      setIsEditModalOpen(false);
+      setEditingItem(null);
+      fetchData();
+    } catch (error: any) {
+      alert('Gagal memperbarui pengajuan: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -459,12 +532,20 @@ export default function AdminPengajuanPage() {
                       />
                     </td>
                     <td className="px-6 py-4 text-sm">
-                        <button 
-                          onClick={() => handleDelete(item.id)}
-                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
-                        >
-                          Hapus
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => openEditModal(item)}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(item.id)}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                     </td>
                   </tr>
                 ))
@@ -580,6 +661,86 @@ export default function AdminPengajuanPage() {
               <div className="mt-6 flex justify-end space-x-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-md bg-zinc-200 px-4 py-2 text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200">Batal</button>
                 <button type="submit" disabled={isSubmitting} className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50">{isSubmitting ? 'Menyimpan...' : 'Kirim Pengajuan'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Pengajuan */}
+      {isEditModalOpen && editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-800 my-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Edit Data Pengajuan</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePengajuan} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Siswa</label>
+                  <input type="text" name="nama_siswa" value={editFormData.nama_siswa} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Sekolah</label>
+                  <input type="text" name="nama_sekolah" value={editFormData.nama_sekolah} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Kelas</label>
+                  <input type="text" name="kelas" value={editFormData.kelas} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">No. WA</label>
+                  <input type="text" name="no_wa" value={editFormData.no_wa} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Ayah</label>
+                  <input type="text" name="nama_ayah" value={editFormData.nama_ayah} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Ibu</label>
+                  <input type="text" name="nama_ibu" value={editFormData.nama_ibu} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">RT</label>
+                    <input type="text" name="rt" value={editFormData.rt} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">RW</label>
+                    <input type="text" name="rw" value={editFormData.rw} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Kelurahan</label>
+                  <select name="kelurahan_id" value={editFormData.kelurahan_id} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700">
+                    <option value="">-- Pilih Kelurahan --</option>
+                    {kelurahanList.map(k => (
+                      <option key={k.id} value={k.id}>{k.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tahun</label>
+                  <input type="text" name="tahun" value={editFormData.tahun} onChange={handleEditFormChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Keterangan (Opsional)</label>
+                <textarea name="keterangan" value={editFormData.keterangan} onChange={handleEditFormChange} rows={3} className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"></textarea>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 bg-zinc-200 text-zinc-800 rounded-md hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200">
+                  Batal
+                </button>
+                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
               </div>
             </form>
           </div>

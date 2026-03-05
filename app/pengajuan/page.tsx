@@ -24,6 +24,11 @@ type Kelurahan = {
   name: string;
 };
 
+type SchoolData = {
+  id: number;
+  nama_sekolah: string;
+};
+
 type RiwayatPengajuan = {
   id: number;
   created_at: string;
@@ -37,6 +42,7 @@ export default function HomePage() {
   
   // State for Search & Data
   const [studentList, setStudentList] = useState<Student[]>([]);
+  const [schoolList, setSchoolList] = useState<SchoolData[]>([]);
   const [kelurahanList, setKelurahanList] = useState<Kelurahan[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -48,6 +54,7 @@ export default function HomePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState<Student | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showEditSchoolSuggestions, setShowEditSchoolSuggestions] = useState(false);
 
   // State for Ajukan
   const [isAjukanModalOpen, setIsAjukanModalOpen] = useState(false);
@@ -60,6 +67,7 @@ export default function HomePage() {
 
   // State for Tambah Data Tab
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [showNewDataSchoolSuggestions, setShowNewDataSchoolSuggestions] = useState(false);
   const [newDataFormData, setNewDataFormData] = useState({
     nama_siswa: '',
     nama_sekolah: '',
@@ -79,6 +87,7 @@ export default function HomePage() {
   useEffect(() => {
     fetchStudents();
     fetchKelurahan();
+    fetchSchools();
   }, []);
 
   const fetchStudents = async () => {
@@ -125,6 +134,38 @@ export default function HomePage() {
   const fetchKelurahan = async () => {
     const { data } = await supabase.from('kelurahan').select('id, name').order('name');
     if (data) setKelurahanList(data);
+  };
+
+  const fetchSchools = async () => {
+    let allSchools: SchoolData[] = [];
+    let from = 0;
+    const step = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, nama_sekolah')
+        .order('nama_sekolah')
+        .range(from, from + step - 1);
+
+      if (error) {
+        console.error("Error fetching schools:", error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allSchools = [...allSchools, ...data];
+        if (data.length < step) {
+          hasMore = false;
+        } else {
+          from += step;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    setSchoolList(allSchools);
   };
 
 
@@ -464,7 +505,7 @@ export default function HomePage() {
                     {/* Helper to render fields */}
                     {[
                         { label: 'Nama Siswa', name: 'nama_siswa' },
-                        { label: 'Nama Sekolah', name: 'nama_sekolah' },
+                        { label: 'Nama Sekolah', name: 'nama_sekolah', type: 'autocomplete' },
                         { label: 'Kelas', name: 'kelas' },
                         { label: 'Nama Ayah', name: 'nama_ayah' },
                         { label: 'Nama Ibu', name: 'nama_ibu' },
@@ -477,6 +518,44 @@ export default function HomePage() {
                         <div key={field.name}>
                             <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{field.label}</label>
                             {isEditing && editFormData ? (
+                                field.type === 'autocomplete' ? (
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            name={field.name} 
+                                            value={editFormData[field.name as keyof Student] as string || ''} 
+                                            onChange={(e) => {
+                                                handleInputChange(e);
+                                                setShowEditSchoolSuggestions(true);
+                                            }}
+                                            onFocus={() => setShowEditSchoolSuggestions(true)}
+                                            onBlur={() => setTimeout(() => setShowEditSchoolSuggestions(false), 200)}
+                                            className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"
+                                            autoComplete="off"
+                                        />
+                                        {showEditSchoolSuggestions && editFormData.nama_sekolah && (
+                                            <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                                                {(() => {
+                                                const filteredSchools = schoolList.filter(s => s.nama_sekolah.toLowerCase().includes((editFormData.nama_sekolah || '').toLowerCase()));
+                                                if (filteredSchools.length > 0) {
+                                                    return filteredSchools.map(s => (
+                                                    <li
+                                                        key={s.id}
+                                                        onClick={() => {
+                                                        setEditFormData(prev => prev ? ({ ...prev, nama_sekolah: s.nama_sekolah }) : null);
+                                                        setShowEditSchoolSuggestions(false);
+                                                        }}
+                                                        className="cursor-pointer px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                                                    >{s.nama_sekolah}</li>
+                                                    ));
+                                                } else {
+                                                    return <li className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">Nama Sekolah tidak ditemukan, silakan hubungi Admin Kecamatan</li>;
+                                                }
+                                                })()}
+                                            </ul>
+                                        )}
+                                    </div>
+                                ) :
                                 field.type === 'select' ? (
                                     <select 
                                         name={field.name} 
@@ -587,9 +666,43 @@ export default function HomePage() {
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Siswa</label>
                     <input type="text" name="nama_siswa" value={newDataFormData.nama_siswa} onChange={handleNewDataChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nama Sekolah</label>
-                    <input type="text" name="nama_sekolah" value={newDataFormData.nama_sekolah} onChange={handleNewDataChange} required className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700" />
+                    <input 
+                      type="text" 
+                      name="nama_sekolah" 
+                      value={newDataFormData.nama_sekolah} 
+                      onChange={(e) => {
+                        handleNewDataChange(e);
+                        setShowNewDataSchoolSuggestions(true);
+                      }}
+                      onFocus={() => setShowNewDataSchoolSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowNewDataSchoolSuggestions(false), 200)}
+                      required 
+                      className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"
+                      autoComplete="off"
+                    />
+                    {showNewDataSchoolSuggestions && newDataFormData.nama_sekolah && (
+                      <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                        {(() => {
+                          const filteredSchools = schoolList.filter(s => s.nama_sekolah.toLowerCase().includes(newDataFormData.nama_sekolah.toLowerCase()));
+                          if (filteredSchools.length > 0) {
+                            return filteredSchools.map(s => (
+                              <li
+                                key={s.id}
+                                onClick={() => {
+                                  setNewDataFormData(prev => ({ ...prev, nama_sekolah: s.nama_sekolah }));
+                                  setShowNewDataSchoolSuggestions(false);
+                                }}
+                                className="cursor-pointer px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                              >{s.nama_sekolah}</li>
+                            ));
+                          } else {
+                            return <li className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">Nama Sekolah tidak ditemukan, silakan hubungi Admin Kecamatan</li>;
+                          }
+                        })()}
+                      </ul>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Kelas</label>
