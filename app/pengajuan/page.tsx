@@ -43,6 +43,7 @@ type RiwayatPencairan = {
   kelas: string | null;
   nama_sekolah: string | null;
   nomor_sk: string | null;
+  tipe_sk: string | null;
 };
 
 export default function HomePage() {
@@ -197,7 +198,7 @@ export default function HomePage() {
   const fetchRiwayatPencairan = async (student: Student) => {
     const { data, error } = await supabase
       .from('pencairan')
-      .select('id, tahun, kelas, nama_sekolah, nomor_sk')
+      .select('id, tahun, kelas, nama_sekolah, nomor_sk, tipe_sk')
       .eq('nama_siswa', student.nama_siswa)
       .eq('nama_ibu', student.nama_ibu)
       .order('tahun', { ascending: false });
@@ -708,6 +709,7 @@ export default function HomePage() {
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Tahun</th>
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Kelas</th>
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Nama Sekolah</th>
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Tipe SK</th>
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Nomor SK</th>
                             </tr>
                           </thead>
@@ -717,6 +719,7 @@ export default function HomePage() {
                                 <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.tahun || '-'}</td>
                                 <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.kelas || '-'}</td>
                                 <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.nama_sekolah || '-'}</td>
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.tipe_sk || '-'}</td>
                                 <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.nomor_sk || '-'}</td>
                               </tr>
                             ))}
