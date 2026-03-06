@@ -37,6 +37,14 @@ type RiwayatPengajuan = {
   deskripsi: string | null;
 };
 
+type RiwayatPencairan = {
+  id: number;
+  tahun: string | null;
+  kelas: string | null;
+  nama_sekolah: string | null;
+  nomor_sk: string | null;
+};
+
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'pengajuan' | 'tambahData'>('pengajuan');
   
@@ -49,6 +57,7 @@ export default function HomePage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [riwayatPengajuan, setRiwayatPengajuan] = useState<RiwayatPengajuan[]>([]);
+  const [riwayatPencairan, setRiwayatPencairan] = useState<RiwayatPencairan[]>([]);
 
   // State for Edit
   const [isEditing, setIsEditing] = useState(false);
@@ -185,10 +194,26 @@ export default function HomePage() {
     }
   };
 
+  const fetchRiwayatPencairan = async (student: Student) => {
+    const { data, error } = await supabase
+      .from('pencairan')
+      .select('id, tahun, kelas, nama_sekolah, nomor_sk')
+      .eq('nama_siswa', student.nama_siswa)
+      .eq('nama_ibu', student.nama_ibu)
+      .order('tahun', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching disbursement history:', error);
+    } else {
+      setRiwayatPencairan(data || []);
+    }
+  };
+
   const handleResetSearch = () => {
     setSearchQuery('');
     setSelectedStudent(null);
     setRiwayatPengajuan([]);
+    setRiwayatPencairan([]);
     setIsEditing(false);
     setEditFormData(null);
     setShowSuggestions(false);
@@ -201,6 +226,7 @@ export default function HomePage() {
     setIsEditing(false);
     setEditFormData(null);
     fetchRiwayatPengajuan(student);
+    fetchRiwayatPencairan(student);
   };
 
   const handleEditClick = () => {
@@ -668,6 +694,37 @@ export default function HomePage() {
                       </div>
                     ) : (
                       <p className="text-zinc-500 dark:text-zinc-400">Belum ada riwayat pengajuan.</p>
+                    )}
+                  </div>
+
+                  {/* Riwayat Pencairan Section */}
+                  <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-700">
+                    <h3 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">Riwayat Pencairan</h3>
+                    {riwayatPencairan.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full whitespace-nowrap text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Tahun</th>
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Kelas</th>
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Nama Sekolah</th>
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Nomor SK</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {riwayatPencairan.map((item) => (
+                              <tr key={item.id} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.tahun || '-'}</td>
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.kelas || '-'}</td>
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.nama_sekolah || '-'}</td>
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.nomor_sk || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-zinc-500 dark:text-zinc-400">Belum ada riwayat pencairan.</p>
                     )}
                   </div>
                 </div>
