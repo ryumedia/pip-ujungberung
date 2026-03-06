@@ -185,6 +185,15 @@ export default function HomePage() {
     }
   };
 
+  const handleResetSearch = () => {
+    setSearchQuery('');
+    setSelectedStudent(null);
+    setRiwayatPengajuan([]);
+    setIsEditing(false);
+    setEditFormData(null);
+    setShowSuggestions(false);
+  };
+
   const handleSelectStudent = (student: Student) => {
     setSelectedStudent(student);
     setSearchQuery(student.nama_siswa);
@@ -455,40 +464,50 @@ export default function HomePage() {
               </p>
               
               {/* Search Box */}
-              <div className="relative mb-8">
+              <div className="mb-8">
                 <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Cari Siswa - Pastikan Sesuai KK</label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (!isEditing) setSelectedStudent(null);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  placeholder="Ketik nama siswa..."
-                  className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"
-                />
-                {showSuggestions && searchQuery && !selectedStudent && (
-                  <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                    {studentList.filter(s => s.nama_siswa.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
-                      studentList.filter(s => s.nama_siswa.toLowerCase().includes(searchQuery.toLowerCase())).map(s => (
-                        <li
-                          key={s.id}
-                          onClick={() => handleSelectStudent(s)}
-                          className="cursor-pointer px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                        >
-                          <div className="font-medium text-zinc-900 dark:text-zinc-100">{s.nama_siswa}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{s.nama_sekolah} - {s.kelas}</div>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">
-                        {isLoadingData ? 'Memuat data...' : 'Siswa tidak ditemukan, Silakan Input Tambah Data Siswa'}
-                      </li>
+                <div className="flex gap-2">
+                  <div className="relative w-full">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (!isEditing) setSelectedStudent(null);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      placeholder="Ketik nama siswa..."
+                      className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"
+                    />
+                    {showSuggestions && searchQuery && !selectedStudent && (
+                      <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                        {studentList.filter(s => s.nama_siswa.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
+                          studentList.filter(s => s.nama_siswa.toLowerCase().includes(searchQuery.toLowerCase())).map(s => (
+                            <li
+                              key={s.id}
+                              onClick={() => handleSelectStudent(s)}
+                              className="cursor-pointer px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                            >
+                              <div className="font-medium text-zinc-900 dark:text-zinc-100">{s.nama_siswa}</div>
+                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{s.nama_sekolah} - {s.kelas}</div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400">
+                            {isLoadingData ? 'Memuat data...' : 'Siswa tidak ditemukan, Silakan Input Tambah Data Siswa'}
+                          </li>
+                        )}
+                      </ul>
                     )}
-                  </ul>
-                )}
+                  </div>
+                  <button
+                    onClick={handleResetSearch}
+                    className="rounded-md bg-zinc-200 px-4 py-2 text-zinc-800 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200"
+                  >
+                    Reset
+                  </button>
+                </div>
               </div>
 
               {/* Student Details */}
