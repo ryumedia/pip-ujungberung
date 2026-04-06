@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import * as XLSX from 'xlsx';
 
 type PengajuanWithKelurahan = {
   id: number;
@@ -50,6 +51,7 @@ export default function AdminPengajuanPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [tahun, setTahun] = useState(new Date().getFullYear().toString());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // States for Edit Modal
@@ -333,6 +335,44 @@ export default function AdminPengajuanPage() {
     }
   };
 
+  const handleExport = () => {
+    if (filteredPengajuan.length === 0) {
+      alert('Tidak ada data yang cocok dengan filter untuk diekspor.');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      // Mapping data untuk format Excel yang rapi
+      const dataToExport = filteredPengajuan.map((item) => ({
+        'Tanggal Pengajuan': new Date(item.created_at).toLocaleDateString('id-ID'),
+        'Tahun': item.tahun,
+        'Nama Siswa': item.nama_siswa,
+        'Sekolah': item.nama_sekolah,
+        'Kelas': item.kelas,
+        'Nama Ayah': item.nama_ayah,
+        'Nama Ibu': item.nama_ibu,
+        'RT': item.rt,
+        'RW': item.rw,
+        'Kelurahan': item.kelurahan?.name || '-',
+        'No. WA': item.no_wa,
+        'Status': item.status_pengajuan || 'Menunggu',
+        'Deskripsi': item.deskripsi || '-',
+        'Keterangan Siswa': item.keterangan || '-'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Data Pengajuan");
+      XLSX.writeFile(workbook, `Data_Pengajuan_PIP_${new Date().getTime()}.xlsx`);
+    } catch (error: any) {
+      console.error('Export error:', error);
+      alert('Gagal mengekspor data: ' + error.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Filtering and Pagination Logic
   const filteredPengajuan = pengajuanList.filter(item => {
     return (
@@ -370,12 +410,21 @@ export default function AdminPengajuanPage() {
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Data Pengajuan</h2>
           <p className="mt-1 text-zinc-600 dark:text-zinc-400">Daftar pengajuan yang masuk untuk diverifikasi.</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          + Tambah Pengajuan
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+          >
+            {isExporting ? 'Mengekspor...' : 'Download Excel'}
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+          >
+            + Tambah Pengajuan
+          </button>
+        </div>
       </div>
 
       {/* Filter Section */}
