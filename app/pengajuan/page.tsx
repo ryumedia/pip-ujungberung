@@ -42,8 +42,7 @@ type RiwayatPencairan = {
   tahun: string | null;
   kelas: string | null;
   nama_sekolah: string | null;
-  nomor_sk: string | null;
-  tipe_sk: string | null;
+  nominal: number | null;
 };
 
 export default function HomePage() {
@@ -198,9 +197,9 @@ export default function HomePage() {
   const fetchRiwayatPencairan = async (student: Student) => {
     const { data, error } = await supabase
       .from('pencairan')
-      .select('id, tahun, kelas, nama_sekolah, nomor_sk, tipe_sk')
-      .eq('nama_siswa', student.nama_siswa)
-      .eq('nama_ibu', student.nama_ibu)
+      .select('id, tahun, kelas, nama_sekolah, nominal')
+      .ilike('nama_siswa', student.nama_siswa)
+      .ilike('nama_ibu', student.nama_ibu)
       .order('tahun', { ascending: false });
 
     if (error) {
@@ -707,20 +706,20 @@ export default function HomePage() {
                           <thead>
                             <tr className="border-b border-zinc-200 dark:border-zinc-700">
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Tahun</th>
-                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Kelas</th>
                               <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Nama Sekolah</th>
-                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Tipe SK</th>
-                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Nomor SK</th>
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Kelas</th>
+                              <th className="pb-2 font-semibold text-zinc-900 dark:text-zinc-100">Nominal</th>
                             </tr>
                           </thead>
                           <tbody>
                             {riwayatPencairan.map((item) => (
                               <tr key={item.id} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                                 <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.tahun || '-'}</td>
-                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.kelas || '-'}</td>
                                 <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.nama_sekolah || '-'}</td>
-                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.tipe_sk || '-'}</td>
-                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.nomor_sk || '-'}</td>
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">{item.kelas || '-'}</td>
+                                <td className="py-2 text-zinc-600 dark:text-zinc-400">
+                                  {item.nominal ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.nominal) : '-'}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
