@@ -78,6 +78,8 @@ export default function AdminPengajuanPage() {
   const [filterNamaIbu, setFilterNamaIbu] = useState('');
   const [filterKelurahan, setFilterKelurahan] = useState('');
   const [filterSekolah, setFilterSekolah] = useState('');
+  const [filterRt, setFilterRt] = useState('');
+  const [filterRw, setFilterRw] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAdaKeterangan, setFilterAdaKeterangan] = useState(false);
   const [kelurahanList, setKelurahanList] = useState<Kelurahan[]>([]);
@@ -89,13 +91,24 @@ export default function AdminPengajuanPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    fetchData();
-    fetchStudents();
-    fetchKelurahanList();
+    const initializePage = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          fetchData(),
+          fetchStudents(),
+          fetchKelurahanList()
+        ]);
+      } catch (error) {
+        console.error("Initialization failed:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initializePage();
   }, []);
 
   const fetchData = async () => {
-    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('pengajuan')
@@ -117,8 +130,6 @@ export default function AdminPengajuanPage() {
     } catch (error: any) {
       console.error('Error fetching pengajuan:', error.message);
       alert('Gagal memuat data: ' + error.message);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -381,6 +392,8 @@ export default function AdminPengajuanPage() {
       (filterNamaAyah ? item.nama_ayah.toLowerCase().includes(filterNamaAyah.toLowerCase()) : true) &&
       (filterNamaIbu ? item.nama_ibu.toLowerCase().includes(filterNamaIbu.toLowerCase()) : true) &&
       (filterKelurahan ? item.kelurahan_id?.toString() === filterKelurahan : true) &&
+      (filterRt ? item.rt === filterRt : true) &&
+      (filterRw ? item.rw === filterRw : true) &&
       (filterSekolah ? item.nama_sekolah.toLowerCase().includes(filterSekolah.toLowerCase()) : true) &&
       (filterStatus ? (item.status_pengajuan || 'Menunggu') === filterStatus : true) &&
       (filterAdaKeterangan ? !!item.keterangan : true)
@@ -401,7 +414,7 @@ export default function AdminPengajuanPage() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterTahun, filterNamaSiswa, filterNamaAyah, filterNamaIbu, filterKelurahan, filterSekolah, filterStatus, filterAdaKeterangan]);
+  }, [filterTahun, filterNamaSiswa, filterNamaAyah, filterNamaIbu, filterKelurahan, filterSekolah, filterStatus, filterAdaKeterangan, filterRt, filterRw]);
 
   return (
     <div>
@@ -467,6 +480,28 @@ export default function AdminPengajuanPage() {
             <option key={k.id} value={k.id.toString()}>
               {k.name}
             </option>
+          ))}
+        </select>
+        <select
+          value={filterRt}
+          onChange={(e) => setFilterRt(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        >
+          <option value="">-- Semua RT --</option>
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+            <option key={num} value={num.toString()}>
+              {num}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterRw}
+          onChange={(e) => setFilterRw(e.target.value)}
+          className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+        >
+          <option value="">-- Semua RW --</option>
+          {Array.from({ length: 15 }, (_, i) => i + 1).map((num) => (
+            <option key={num} value={num.toString()}>{num}</option>
           ))}
         </select>
         <input
