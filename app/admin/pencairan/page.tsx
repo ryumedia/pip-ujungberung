@@ -168,7 +168,27 @@ export default function PencairanPage() {
     setIsExporting(true);
     try {
       // Menggunakan data yang sudah difilter di client-side
-      const dataToExport = filteredData.map(({ id, created_at, ...rest }) => rest);
+      const dataToExport = filteredData.map((item) => ({
+        'Tahun': item.tahun,
+        'Nama Siswa': item.nama_siswa,
+        'NISN': item.nisn,
+        'Kelas': item.kelas,
+        'Nama Sekolah': item.nama_sekolah,
+        'Nama Ibu': item.nama_ibu,
+        'Nama Ayah': item.nama_ayah,
+        'RT': item.rt,
+        'RW': item.rw,
+        'Kelurahan': item.kelurahan?.name || '-',
+        'Virtual Account': item.virtual_account,
+        'Nomer Rekening': item.nomer_rekening,
+        'Tahap': item.tahap,
+        'Nominal': item.nominal,
+        'Tipe SK': item.tipe_sk,
+        'Nomor SK': item.nomor_sk,
+        'NIK': item.nik,
+        'Nama Pengusul': item.nama_pengusul,
+        'Tanggal SK': item.tanggal_sk ? new Date(item.tanggal_sk).toLocaleDateString('id-ID') : '-',
+      }));
 
       const worksheet = XLSX.utils.json_to_sheet(dataToExport);
       const workbook = XLSX.utils.book_new();
