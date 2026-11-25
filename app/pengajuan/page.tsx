@@ -257,8 +257,23 @@ export default function HomePage() {
     }
   };
 
+  const isSchoolValid = (namaSekolah: string) => {
+    const normalized = (namaSekolah || '').trim().toUpperCase();
+    if (!normalized) return false;
+    return schoolList.some(s => (s.nama_sekolah || '').trim().toUpperCase() === normalized);
+  };
+
+  const getSchoolValidationMessage = () =>
+    'Nama Sekolah tidak terdaftar pada data sekolah. Silakan pilih sekolah dari daftar, atau hubungi Admin Kecamatan untuk menambahkan sekolah tersebut.';
+
   const handleSaveStudent = async () => {
     if (!editFormData) return;
+
+    if (!isSchoolValid(editFormData.nama_sekolah)) {
+      alert(getSchoolValidationMessage());
+      return;
+    }
+
     setIsSaving(true);
     try {
       const { error } = await supabase
@@ -372,6 +387,12 @@ export default function HomePage() {
 
   const handleAddNewStudent = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isSchoolValid(newDataFormData.nama_sekolah)) {
+      alert(getSchoolValidationMessage());
+      return;
+    }
+
     setIsAddingNew(true);
 
     try {
@@ -573,9 +594,14 @@ export default function HomePage() {
                                             }}
                                             onFocus={() => setShowEditSchoolSuggestions(true)}
                                             onBlur={() => setTimeout(() => setShowEditSchoolSuggestions(false), 200)}
-                                            className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"
+                                            className={`w-full rounded-md border p-2 dark:bg-zinc-700 ${editFormData.nama_sekolah && !isSchoolValid(editFormData.nama_sekolah) ? 'border-red-500 dark:border-red-500' : 'border-zinc-300 dark:border-zinc-600'}`}
                                             autoComplete="off"
                                         />
+                                        {editFormData.nama_sekolah && !isSchoolValid(editFormData.nama_sekolah) && (
+                                            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                                                Nama sekolah tidak terdaftar pada data sekolah.
+                                            </p>
+                                        )}
                                         {showEditSchoolSuggestions && editFormData.nama_sekolah && (
                                             <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                                                 {(() => {
@@ -755,9 +781,14 @@ export default function HomePage() {
                       onFocus={() => setShowNewDataSchoolSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowNewDataSchoolSuggestions(false), 200)}
                       required 
-                      className="w-full rounded-md border border-zinc-300 p-2 dark:border-zinc-600 dark:bg-zinc-700"
+                      className={`w-full rounded-md border p-2 dark:bg-zinc-700 ${newDataFormData.nama_sekolah && !isSchoolValid(newDataFormData.nama_sekolah) ? 'border-red-500 dark:border-red-500' : 'border-zinc-300 dark:border-zinc-600'}`}
                       autoComplete="off"
                     />
+                    {newDataFormData.nama_sekolah && !isSchoolValid(newDataFormData.nama_sekolah) && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                        Nama sekolah tidak terdaftar pada data sekolah.
+                      </p>
+                    )}
                     {showNewDataSchoolSuggestions && newDataFormData.nama_sekolah && (
                       <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                         {(() => {
