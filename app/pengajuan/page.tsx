@@ -183,8 +183,7 @@ export default function HomePage() {
     const { data, error } = await supabase
       .from('pengajuan')
       .select('id, created_at, tahun, status_pengajuan, deskripsi')
-      .eq('nama_siswa', student.nama_siswa)
-      .eq('nama_ibu', student.nama_ibu)
+      .ilike('nama_siswa', student.nama_siswa)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -199,7 +198,6 @@ export default function HomePage() {
       .from('pencairan')
       .select('id, tahun, kelas, nama_sekolah, nominal')
       .ilike('nama_siswa', student.nama_siswa)
-      .ilike('nama_ibu', student.nama_ibu)
       .order('tahun', { ascending: false });
 
     if (error) {

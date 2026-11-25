@@ -26,6 +26,7 @@ type Pencairan = {
   rt: string | null;
   rw: string | null;
   kelurahan_id: number | null;
+  no_wa: string | null;
   kelurahan: { name: string } | null;
 };
 
@@ -55,7 +56,7 @@ export default function PencairanPage() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = 15;
 
   const supabase = createClient();
 
@@ -154,6 +155,29 @@ export default function PencairanPage() {
     }
   };
 
+  // Normalisasi nomor WA ke format internasional (62...) agar link wa.me valid
+  const getWaNumber = (noWa: string | null): string | null => {
+    if (!noWa) return null;
+    let digits = noWa.replace(/\D/g, '');
+    if (!digits) return null;
+    if (digits.startsWith('0')) {
+      digits = '62' + digits.slice(1);
+    } else if (digits.startsWith('8')) {
+      digits = '62' + digits;
+    } else if (!digits.startsWith('62')) {
+      digits = '62' + digits;
+    }
+    return digits;
+  };
+
+  // Template pesan konfirmasi pencairan via WhatsApp
+  const buildWaLink = (item: Pick<Pencairan, 'no_wa' | 'tahun' | 'nama_siswa' | 'nama_sekolah'>): string | null => {
+    const number = getWaNumber(item.no_wa);
+    if (!number) return null;
+    const pesan = `Assalamu'alaikum... Saya Pa Ali (Tim PIP Ibu Ledia Hanifa untuk Wilayah Ujungberung). Punten, Saya mau mengkonfirmasi. Apakah PIP tahun ${item.tahun || '-'} atas nama ${item.nama_siswa || '-'} di sekolah ${item.nama_sekolah || '-'} *sudah dicairkan?*`;
+    return `https://wa.me/${number}?text=${encodeURIComponent(pesan)}`;
+  };
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -179,6 +203,7 @@ export default function PencairanPage() {
         'RT': item.rt,
         'RW': item.rw,
         'Kelurahan': item.kelurahan?.name || '-',
+        'No. WA': item.no_wa,
         'Virtual Account': item.virtual_account,
         'Nomer Rekening': item.nomer_rekening,
         'Tahap': item.tahap,
@@ -270,7 +295,7 @@ export default function PencairanPage() {
   };
 
   const handleSync = async () => {
-    if (!confirm('Apakah Anda yakin ingin melakukan sinkronisasi data? Proses ini akan mengisi kolom RT, RW, dan Kelurahan di tabel Pencairan berdasarkan kecocokan Nama Siswa dengan Data Siswa.')) return;
+    if (!confirm('Apakah Anda yakin ingin melakukan sinkronisasi data? Proses ini akan mengisi kolom RT, RW, Kelurahan, dan No. WA di tabel Pencairan berdasarkan kecocokan Nama Siswa dengan Data Siswa.')) return;
 
     setIsSyncing(true);
     try {
@@ -283,7 +308,7 @@ export default function PencairanPage() {
       while (hasMore) {
         const { data, error } = await supabase
           .from('students')
-          .select('nama_siswa, rt, rw, kelurahan_id')
+          .select('nama_siswa, rt, rw, kelurahan_id, no_wa')
           .range(from, from + step - 1);
 
         if (error) throw error;
@@ -339,7 +364,8 @@ export default function PencairanPage() {
             id: p.id,
             rt: match.rt,
             rw: match.rw,
-            kelurahan_id: match.kelurahan_id
+            kelurahan_id: match.kelurahan_id,
+            no_wa: match.no_wa
           });
         }
       }
@@ -360,7 +386,8 @@ export default function PencairanPage() {
             .update({
               rt: u.rt,
               rw: u.rw,
-              kelurahan_id: u.kelurahan_id
+              kelurahan_id: u.kelurahan_id,
+              no_wa: u.no_wa
             })
             .eq('id', u.id)
         ));
@@ -485,6 +512,7 @@ export default function PencairanPage() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Nama Ibu</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">RT / RW</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Kelurahan</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">No. WA</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Virtual Account</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">No. Rekening</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">Tahap</th>
@@ -516,6 +544,21 @@ export default function PencairanPage() {
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.nama_ibu || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.rt && item.rw ? `${item.rt} / ${item.rw}` : '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.kelurahan?.name || '-'}</td>
+                      <td className="px-4 py-3 text-sm">
+                        {getWaNumber(item.no_wa) ? (
+                          <a
+                            href={buildWaLink(item) ?? '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Chat WhatsApp ${item.no_wa}`}
+                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 hover:underline"
+                          >
+                            {item.no_wa}
+                          </a>
+                        ) : (
+                          <span className="text-zinc-600 dark:text-zinc-400">{item.no_wa || '-'}</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.virtual_account || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.nomer_rekening || '-'}</td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">{item.tahap || '-'}</td>
@@ -530,7 +573,7 @@ export default function PencairanPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={16} className="px-6 py-8 text-center text-zinc-600 dark:text-zinc-400">
+                    <td colSpan={19} className="px-6 py-8 text-center text-zinc-600 dark:text-zinc-400">
                       Belum ada data pencairan.
                     </td>
                   </tr>
@@ -587,6 +630,7 @@ export default function PencairanPage() {
               <DetailRow label="Nama Ibu" value={selectedPencairan.nama_ibu} />
               <DetailRow label="RT / RW" value={selectedPencairan.rt && selectedPencairan.rw ? `${selectedPencairan.rt} / ${selectedPencairan.rw}` : '-'} />
               <DetailRow label="Kelurahan" value={selectedPencairan.kelurahan?.name || '-'} />
+              <DetailRow label="No. WA" value={selectedPencairan.no_wa} href={buildWaLink(selectedPencairan) ?? undefined} />
               <DetailRow label="Virtual Account" value={selectedPencairan.virtual_account} />
               <DetailRow label="Nomer Rekening" value={selectedPencairan.nomer_rekening} />
               <DetailRow label="Tahap" value={selectedPencairan.tahap} />
@@ -606,11 +650,21 @@ export default function PencairanPage() {
   );
 }
 
-function DetailRow({ label, value }: { label: string, value: string | number | null }) {
+function DetailRow({ label, value, href }: { label: string, value: string | number | null, href?: string }) {
   return (
     <div className="grid grid-cols-3 gap-4 py-3">
       <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{label}</div>
-      <div className="col-span-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{value || '-'}</div>
+      <div className="col-span-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+        {value ? (
+          href ? (
+            <a href={href} target="_blank" rel="noopener noreferrer" title={`Chat WhatsApp ${value}`} className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 hover:underline">
+              {value}
+            </a>
+          ) : (
+            value
+          )
+        ) : '-'}
+      </div>
     </div>
   );
 }
