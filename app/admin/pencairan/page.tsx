@@ -174,7 +174,7 @@ export default function PencairanPage() {
   const buildWaLink = (item: Pick<Pencairan, 'no_wa' | 'tahun' | 'nama_siswa' | 'nama_sekolah'>): string | null => {
     const number = getWaNumber(item.no_wa);
     if (!number) return null;
-    const pesan = `Assalamu'alaikum... Saya Pa Ali (Tim PIP Ibu Ledia Hanifa untuk Wilayah Ujungberung). Punten, Saya mau mengkonfirmasi. Apakah PIP tahun ${item.tahun || '-'} atas nama ${item.nama_siswa || '-'} di sekolah ${item.nama_sekolah || '-'} *sudah dicairkan?*`;
+    const pesan = `Assalamu'alaikum... Saya Pa Ali (Tim PIP Ibu Ledia Hanifa untuk Wilayah Ujungberung). Punten, Saya mau mengkonfirmasi. Penerima PIP tahun ${item.tahun || '-'} atas nama ${item.nama_siswa || '-'} di sekolah ${item.nama_sekolah || '-'} *Apakah Sudah Membuat Buku Tabungan dan Sudah dicairkan?*`;
     return `https://wa.me/${number}?text=${encodeURIComponent(pesan)}`;
   };
 
@@ -628,6 +628,7 @@ export default function PencairanPage() {
               <DetailRow label="Kelas" value={selectedPencairan.kelas} />
               <DetailRow label="Nama Sekolah" value={selectedPencairan.nama_sekolah} />
               <DetailRow label="Nama Ibu" value={selectedPencairan.nama_ibu} />
+              <DetailRow label="Nama Pengusul" value={selectedPencairan.nama_pengusul} />
               <DetailRow label="RT / RW" value={selectedPencairan.rt && selectedPencairan.rw ? `${selectedPencairan.rt} / ${selectedPencairan.rw}` : '-'} />
               <DetailRow label="Kelurahan" value={selectedPencairan.kelurahan?.name || '-'} />
               <DetailRow label="No. WA" value={selectedPencairan.no_wa} href={buildWaLink(selectedPencairan) ?? undefined} />
